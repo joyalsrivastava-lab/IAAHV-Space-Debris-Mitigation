@@ -1,4 +1,4 @@
-# Integrated Ablation and Aerogel Harvesting Vehicle (IAAHV)
+# IAAHV: Integrated Debris Mitigation Satellite (IDMS) Architecture
 
 An original, open-source cyber-physical architecture designed to autonomously mitigate Low Earth Orbit (LEO) space debris and disrupt cascading Kessler Syndrome loops without generating secondary atmospheric, kinetic, or fragmentation pollution.
 
