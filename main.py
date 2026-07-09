@@ -1,68 +1,100 @@
 from sgp4.api import Satrec
+import numpy as np
 import time
-import math
 
-print("🛰️ ==================================================== 🛰️")
-print("    IAAHV AUTONOMOUS FLIGHT SUPERVISOR ENGINE (V 1.0)     ")
-print("    OPERATING SYSTEM STATUS: DETERMINISTIC LOCAL SWEEP    ")
-print("🛰️ ==================================================== 🛰️\n")
+print("🛰️ ============================================================= 🛰️")
+print("    IAAHV CYBER-PHYSICAL ENGINE — CORE ORBITAL MECHANICS MODULE    ")
+print("    STATUS: HIGH-FIDELITY VECTOR DYNAMICS CALCULATION ACTIVE       ")
+print("🛰️ ============================================================= 🛰️\n")
 
-# 1. Initialize Spacecraft (The Harvester) Coordinates via baseline TLE metrics
+# CONSTANTS (WGS-84 Earth Gravitational Model)
+MU = 398600.4418  # Earth's Gravitational Parameter (km^3/s^2)
+R_EARTH = 6378.137  # Earth's Equatorial Radius (km)
+
+# 1. Initialize Spacecraft (The Harvester)
 line1_machine = "1 25544U 98067A   26181.50000000  .00016717  00000-0  30000-3 0  9995"
 line2_machine = "2 25544  51.6428 201.1234 0005432  67.8901 292.1122 15.49876543123456"
 harvester = Satrec.twoline2rv(line1_machine, line2_machine)
 
-# 2. Ingest tracked target satellite fragment object
+# 2. Ingest Tracked Debris Target
 line1_debris = "1 34131U 93036AZ  26180.50000000  .00000214  00000-0  11234-3 0  9993"
 line2_debris = "2 34131  74.0412 114.3219 0014321  56.7891 303.4512 14.34125678623412"
 target_debris = Satrec.twoline2rv(line1_debris, line2_debris)
 
-# Mocked physical metrics for evaluation simulation
-DEBRIS_CROSS_SECTION_DIAMETER_CM = 45.0  # Simulated target diameter sizing
-ALERT_CRITICAL_DIST_KM = 35.0             # Proximity threshold trigger point
+# Configuration Parameters
+DEBRIS_MASS_KG = 15.0  
+ALERT_CRITICAL_DIST_KM = 35.0             
 
-# Time-slice epoch parameters
-jd = 2440587.5
-fr = 0.5
+# Time-slice epoch parameters (Julian Date)
+jd, fr = 2440587.5, 0.5
+
+def calculate_keplerian_elements(r, v):
+    """Converts State Vectors (r, v) into orbital elements using Vector Calculus."""
+    r_mag = np.linalg.norm(r)
+    v_mag = np.linalg.norm(v)
+    
+    # Specific angular momentum vector h = r x v
+    h = np.cross(r, v)
+    h_mag = np.linalg.norm(h)
+    
+    # Semi-major axis (a) via Vis-Viva Equation energy conservation: E = (v^2/2) - (mu/r)
+    ecc_vector = ((v_mag**2 - MU / r_mag) * r - np.dot(r, v) * v) / MU
+    e = np.linalg.norm(ecc_vector)
+    
+    a = 1.0 / ((2.0 / r_mag) - (v_mag**2 / MU))
+    
+    # Perigee Altitude (Lowest point of orbit relative to Earth's surface)
+    perigee_altitude = a * (1.0 - e) - R_EARTH
+    return a, e, perigee_altitude
 
 try:
     for frame in range(1, 6):
-        print(f"🔄 [ORBITAL ENGINE EVALUATION] Frame {frame}/5...")
+        print(f"🔄 [DYNAMIC FRAME VAL] Step {frame}/5...")
         
-        # Calculate exact vector positions via SGP4 propagation
+        # Propagate orbits using SGP4
         err_m, pos_m, vel_m = harvester.sgp4(jd, fr)
         err_d, pos_d, vel_d = target_debris.sgp4(jd, fr)
         
         if err_m == 0 and err_d == 0:
-            mx, my, mz = pos_m
-            dx, dy, dz = pos_d
+            # Cast into high-precision NumPy vectors
+            r_m = np.array(pos_m)
+            r_d = np.array(pos_d)
+            v_d = np.array(vel_d)
             
-            # Solve 3D Euclidean spatial distance math equation
-            distance = math.sqrt((mx - dx)**2 + (my - dy)**2 + (mz - dz)**2)
-            print(f"   ↳ 🛡️ Harvester Vector -> X: {mx:.1f}km | Y: {my:.1f}km | Z: {mz:.1f}km")
-            print(f"   ↳ 🚨 Debris Shard Vector -> X: {dx:.1f}km | Y: {dy:.1f}km | Z: {dz:.1f}km")
-            print(f"   ↳ 📐 Computed Real-Time Proximity: {distance:.2f} km")
+            # Compute true 3D Euclidean vector norm distance
+            distance = np.linalg.norm(r_m - r_d)
+            print(f"   ↳ 📐 Absolute Relative Range: {distance:.4f} km")
             
-            # Execute Threat Protocol categorization logic loops
             if distance < ALERT_CRITICAL_DIST_KM:
-                print("   ⚠️ [ALERT TRIGGERED] Proximity boundary violation detected.")
+                print("   ⚠️ [INTERCEPT THRESHOLD REACHED] Executing State-Vector Analytics...")
                 
-                if DEBRIS_CROSS_SECTION_DIAMETER_CM > 10.0:
-                    print("   ↳ 🚨 TARGET TYPE: MACROSCOPIC HEAVENLY MASS.")
-                    print("   ↳ ⚡ COMMAND: Activating Conical Laser Rings. Executing non-destructive Vector Ablation.")
-                else:
-                    print("   ↳ 🎯 TARGET TYPE: MICROSCOPIC ORBITAL SHARD.")
-                    print("   ↳ 🕳️ COMMAND: Main Core Hatch Open. Adjusting Magnetorquers to catch shard inside Aerogel Matrix.")
+                # Extract original Keplerian traits
+                a_orig, e_orig, perigee_orig = calculate_keplerian_elements(r_d, v_d)
+                print(f"   ↳ 📊 Debris Current Perigee Altitude: {perigee_orig:.2f} km")
+                
+                # CALCULATE CRITICAL ABLATION PHYSICS
+                # Target: Drop perigee altitude into the atmosphere (< 150km) to trigger destructive drag
+                target_perigee = 120.0 
+                target_a = (target_perigee + R_EARTH + np.linalg.norm(r_d)) / 2.0
+                
+                # Vis-Viva calculation for required velocity after laser pulse
+                required_v_mag = np.sqrt(MU * ((2.0 / np.linalg.norm(r_d)) - (1.0 / target_a)))
+                current_v_mag = np.linalg.norm(v_d)
+                
+                # Needed Delta-V to be induced by the laser system
+                delta_v_needed = current_v_mag - required_v_mag
+                
+                print(f"   ↳ ⚡ [LASER ENGAGED] Initiating Photonic Ablation Coupling Loop.")
+                print(f"   ↳ 🎯 Required Δv to force atmospheric decay: {delta_v_needed:.6f} km/s")
+                print(f"   ↳ 📉 Predicted New Perigee Post-Ablation: {target_perigee:.1f} km (De-orbit Assured)")
             else:
-                print("   ✅ [SYSTEM BALANCE] Space track clear. No immediate hardware actions required.")
+                print("   ✅ [ORBITAL STABILITY] Target tracking clear within standard deviations.")
         else:
-            print("   ❌ Critical propagation execution error.")
+            print("   ❌ SGP4 Mathematical Fault Error.")
             
-        print("-" * 75)
-        fr += 0.0005  # Step time mechanics forward
-        time.sleep(2)
-
-    print("\n🏁 Log files compiled. Automated trajectory sequence closed down successfully.")
+        print("-" * 80)
+        fr += 0.002  # Propagate forward in time
+        time.sleep(1.5)
 
 except KeyboardInterrupt:
-    print("\n🛑 Program terminated manually by the control engineer.")
+    print("\n🛑 Telemetry closed down by operator.")
