@@ -1,2 +1,3 @@
-# IAAHV-Space-Debris-Mitigation
-Autonomous open-source cyber-physical architecture using Python, laser ablation, and aerogel to mitigate Low Earth Orbit space debris.
+IAAHV: Integrated Debris Mitigation Satellite (IDMS) Architecture
+Project Overview
+IAAHV-IDMS is an open-source, autonomous cyber-physical aerospace platform engineered to actively mitigate the risks of Kessler Syndrome in Low Earth Orbit (LEO). By combining high-precision Python tracking algorithms with a multi-tier hardware system, the satellite autonomously targets and neutralizes orbital debris across different size classifications. The architecture utilizes localized laser ablation to alter the velocity vector (\(\Delta v\)) of macroscopic objects to force atmospheric re-entry, alongside a low-density silica aerogel matrix designed to safely capture micro-debris fragments without fragmentation.
